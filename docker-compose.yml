@@ -1,0 +1,45 @@
+version: "3.8"
+services:
+  smilecdr:
+    container_name: smilecdr_latest
+    image: kidsfirstdrc/smilecdr:2023.02.R02
+    depends_on:
+      - postgres_cdr
+    env_file:
+      - .env
+    ports:
+      - "8000:8000"
+      - "9000:9000"
+      - "9100:9100"
+      - "8001:8001"
+      - "9200:9200"
+      - "9201:9201"
+    volumes:
+      - ./settings/master.properties:/home/smile/smilecdr/classes/cdr-config-Master.properties
+      - ./settings/setenv:/home/smile/smilecdr/bin/setenv
+      # - log:/home/smile/smilecdr/log
+      # - mq:/home/smile/smilecdr/activemq-data
+    restart: "unless-stopped"
+  postgres_cdr:
+    container_name: postgres_cdr_latest
+    build:
+      context: ./postgres
+    image: postgres_cdr
+    ports:
+      - "5432:5432"
+    env_file:
+      - .env
+    environment:
+      POSTGRES_USER: "${POSTGRES_ADMIN_USER}"
+      POSTGRES_PASSWORD: "${POSTGRES_ADMIN_PASSWORD}"
+      FHIR_DB_NAME: "${FHIR_DB_NAME}"
+      FHIR_DB_USER: "${FHIR_DB_USERNAME}"
+      FHIR_DB_PASSWORD: "${FHIR_DB_PASSWORD}"
+    volumes:
+      - smilecdr_db:/var/lib/postgresql/data
+    restart: unless-stopped
+volumes:
+  smilecdr_db:
+#   log:
+#   mq:
+
