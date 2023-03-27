@@ -18,14 +18,19 @@
     ],
     "defaultLaunchContexts": [],
     "lastActive": "2023-03-27T18:15:22.802+00:00",
-    "lastConnected": "2023-03-27T21:41:01.439+00:00",
-    "notes": "{\"studies\": {\"SD-0\": {\"read\": true, \"write\": true, \"delete\": true}}}",
+    "lastConnected": "2023-03-27T23:05:52.028+00:00",
+    "notes": "{\"studies\": {\"SD-0\": {\"read\": true, \"write\": false, \"delete\": false}, \"SD-1\": {\"read\": true, \"write\": false, \"delete\": false}}}",
     "consent": {
       "studies": {
         "SD-0": {
           "read": true,
-          "write": true,
-          "delete": true
+          "write": false,
+          "delete": false
+        },
+        "SD-1": {
+          "read": true,
+          "write": false,
+          "delete": false
         }
       }
     },
@@ -34,4 +39,3 @@
     "moduleId": "local_security"
   }
 ]
-
