@@ -17,6 +17,7 @@ services:
     volumes:
       - ./settings/master.properties:/home/smile/smilecdr/classes/cdr-config-Master.properties
       - ./settings/setenv:/home/smile/smilecdr/bin/setenv
+      - ./settings/consent.js:/home/smile/smilecdr/classes/consent.js
       # - log:/home/smile/smilecdr/log
       # - mq:/home/smile/smilecdr/activemq-data
     restart: "unless-stopped"

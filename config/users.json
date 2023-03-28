@@ -1,0 +1,79 @@
+[
+  {
+    "username": "ingest_client",
+    "password": "iamSmile123",
+    "familyName": "Ingest",
+    "givenName": "Client",
+    "accountLocked": false,
+    "systemUser": false,
+    "accountDisabled": false,
+    "failedLoginAttempts": 0,
+    "external": false,
+    "serviceAccount": false,
+    "twoFactorAuthStatus": "NO_KEY_DEFINED",
+    "authorities": [
+      {
+        "permission": "FHIR_ALL_READ"
+      },
+      {
+        "permission": "FHIR_ALL_WRITE"
+      }
+    ],
+    "defaultLaunchContexts": [],
+    "lastActive": "2023-03-27T18:15:22.802+00:00",
+    "lastConnected": "2023-03-28T13:47:49.190+00:00",
+    "consent": {
+      "all": {
+        "read": true,
+        "write": false,
+        "delete": false
+      },
+      "studies": {
+        "SD-0": {
+          "read": true,
+          "write": true,
+          "delete": false
+        }
+      }
+    },
+    "pid": 4,
+    "notes": "{\"all\": {\"read\": true, \"write\": false, \"delete\": false}, \"studies\": {\"SD-0\": {\"write\": true, \"delete\": false}}}",
+    "nodeId": "Master",
+    "moduleId": "local_security"
+  },
+  {
+    "username": "read_specific",
+    "password": "iamSmile123",
+    "familyName": "Read Specific Studies",
+    "givenName": "Client",
+    "accountLocked": false,
+    "systemUser": false,
+    "accountDisabled": false,
+    "failedLoginAttempts": 0,
+    "external": false,
+    "serviceAccount": false,
+    "twoFactorAuthStatus": "NO_KEY_DEFINED",
+    "authorities": [
+      {
+        "permission": "FHIR_ALL_READ"
+      }
+    ],
+    "defaultLaunchContexts": [],
+    "lastActive": "2023-03-27T18:15:22.802+00:00",
+    "lastConnected": "2023-03-28T13:47:49.190+00:00",
+    "consent": {
+      "studies": {
+        "SD-0": {
+          "read": true,
+          "write": false,
+          "delete": false
+        }
+      }
+    },
+    "notes": "{\"studies\": {\"SD-0\": {\"read\": true, \"write\": false, \"delete\": false}}}",
+    "pid": 5,
+    "nodeId": "Master",
+    "moduleId": "local_security"
+  }
+]
+

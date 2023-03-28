@@ -29,14 +29,15 @@ def generate_data(n_studies, n_patients):
         # Make n_patients patients per study
         patients.extend(
             [
-                fhir_builder.patient(f"PT-{pi}", f"SD-{i}")
+                fhir_builder.patient(f"PT-{i}-{pi}", f"SD-{i}")
                 for pi in range(n_patients)
             ]
         )
         # Make 1 specimens per patient
         specimens.extend(
             [
-                fhir_builder.specimen(f"SP-{pi}", f"PT-{pi}", f"SD-{i}")
+                fhir_builder.specimen(
+                    f"SP-{i}-{pi}", f"PT-{i}-{pi}", f"SD-{i}")
                 for pi in range(n_patients)
             ]
         )
