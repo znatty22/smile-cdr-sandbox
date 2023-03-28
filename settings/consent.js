@@ -1,8 +1,8 @@
-// Log = {
-//   info: (msg) => console.info(msg),
-//   warn: (msg) => console.warn(msg),
-//   error: (msg) => console.error(msg),
-// };
+Log = {
+  info: (msg) => console.info(msg),
+  warn: (msg) => console.warn(msg),
+  error: (msg) => console.error(msg),
+};
 
 function extractStudyPermissions(studyPermissions) {
   /*
@@ -58,29 +58,12 @@ function allowedStudiesForAction(studyPermissions, action) {
    * */
 
   result = {
-    all: {
-      read: false,
-      write: false,
-      delete: false,
-    },
+    all: {},
     studies: null,
   };
 
-  malformed = `Unrecognized study permissions ${JSON.stringify(
-    studyPermissions
-  )}`;
-  // Check if user has read all, write all, or delete all permissions
-  if (studyPermissions.all) {
-    if (studyPermissions.all[action]) {
-      result.all[action] = true;
-      // Study permissions are not recognized
-    } else {
-      Log.warn(malformed);
-    }
-    return result;
-
-    // If the user has permissions for specific studies, specify which studies
-  } else if (
+  // If the user has permissions for specific studies, specify which studies
+  if (
     studyPermissions.studies &&
     Object.keys(studyPermissions.studies).length > 0
   ) {
@@ -88,8 +71,10 @@ function allowedStudiesForAction(studyPermissions, action) {
     result.studies = studyPermissionList
       .filter((studyPermission) => studyPermission[action])
       .map((studyPermission) => studyPermission.id);
-  } else {
-    Log.warn(malformed);
+  }
+  // Check if user has read all, write all, or delete all permissions
+  if (studyPermissions.all && studyPermissions.all[action]) {
+    result.all[action] = true;
   }
 
   return result;
@@ -210,13 +195,8 @@ function consentCanSeeResource(
   }
   result = allowedStudiesForAction(studyPermissions, action);
 
-  // For super users that can do read/write/delete all,
-  // skip the rest of the consent service
-  if (result.all[action]) {
-    theContextServices.authorized();
-    Log.info(`Authorized to ${action} ALL studies`);
-    return;
-  }
+  Log.error(JSON.stringify(result));
+
   // For read-only users that have been granted access to specific studies,
   // Grant access if the user has access to ALL of the studies tagged on the resource
   isStudyResource = true;
@@ -238,47 +218,56 @@ function consentCanSeeResource(
       return;
     }
   }
+  // For super users that can do read/write/delete all,
+  // skip the rest of the consent service
+  if (result.all[action]) {
+    theContextServices.authorized();
+    Log.info(`Authorized to ${action} ALL studies`);
+    return;
+  }
   Log.info("Not authorized to access any studies yet");
   theContextServices.reject();
+  return;
 }
 
 // ******************************** TEST ********************************
-// request = {
-//   requestType: "GET",
-// };
-// resource = {
-//   meta: {
-//     tags: [
-//       {
-//         system: "urn:study_id",
-//         code: "SD-1",
-//       },
-//     ],
-//   },
-// };
-// context = {
-//   authorized: function () {
-//     // console.log("Authorized!!!");
-//   },
-//   reject: function () {
-//     // console.log("403 Forbidden!!!");
-//   },
-//   proceed: function () {
-//     // console.log("Proceeding to consent can see resource");
-//   },
-// };
-// user = {
-//   role: "FHIR_ALL_READ",
-//   notes:
-//     '{"studies": {"SD-0": {"read": false, "write": false, "delete": false}, "SD-1": {"read": true, "write": false, "delete": false}}}',
-//   // '{"all": { "foo": true }}',
-//   // "",
-//   hasAuthority: function (role) {
-//     return this.role == role;
-//   },
-// };
+request = {
+  requestType: "GET",
+};
+resource = {
+  meta: {
+    tags: [
+      {
+        system: "urn:study_id",
+        code: "SD-0",
+      },
+    ],
+  },
+};
+context = {
+  authorized: function () {
+    // console.log("Authorized!!!");
+  },
+  reject: function () {
+    // console.log("403 Forbidden!!!");
+  },
+  proceed: function () {
+    // console.log("Proceeding to consent can see resource");
+  },
+};
+user = {
+  role: "FHIR_ALL_WRITE",
+  notes:
+    // '{"studies": {"SD-0": {"read": false, "write": false, "delete": false}, "SD-1": {"read": true, "write": false, "delete": false}}}',
+    '{"studies": {"SD-0": {"read": false, "write": true, "delete": false}}, "all": {"read": true, "write": false, "delete": false}}',
+  // '{"all": { "foo": true }}',
+  // "",
+  hasAuthority: function (role) {
+    return this.role == role;
+  },
+};
 
-// proceed = consentStartOperation(request, user, context);
-// if (proceed) {
-//   consentCanSeeResource(request, user, context, resource);
-// }
+proceed = consentStartOperation(request, user, context);
+if (proceed) {
+  consentCanSeeResource(request, user, context, resource);
+}
