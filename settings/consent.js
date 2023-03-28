@@ -4,6 +4,34 @@ Log = {
   error: (msg) => console.error(msg),
 };
 
+function permissionFromHttpOp(httpOp) {
+  /*
+   * Translate an HTTP operation like GET, PUT, etc to one of the following
+   * permissions: read, write, delete
+   *
+   * If we don't recognize the HTTP operation, then return null
+   * */
+  switch (httpOp) {
+    case "GET":
+      action = "read";
+      break;
+    case "POST":
+      action = "write";
+      break;
+    case "PUT":
+      action = "write";
+      break;
+    case "PUT":
+      action = "write";
+      break;
+    case "DELETE":
+      action = "delete";
+      break;
+    default:
+      action = null;
+  }
+  return action;
+}
 function extractStudyPermissions(studyPermissions) {
   /*
    * Convert to list of study permission objects and return the list
@@ -20,19 +48,19 @@ function allowedStudiesForAction(studyPermissions, action) {
    * Given an action (read, write, delete), return the study IDs that
    * the user is able to perform the action on
    *
-   * If the has blanket permissions for that action (read all studies) then
-   * indicate this in the result object
+   * Or if the user has blanket permissions for that action (read all studies)
+   * then indicate this in the auth object
    *
    * Examples:
    *
    * ** Read specific studies **
    * studyPermissions = {
    *  studies: {
-   *    SD_0: true
+   *    SD_0: { read: true }
    *  }
    * }
-   * result = allowedStudiesForAction(studyPermissions, "read")
-   * result = {
+   * auth = allowedStudiesForAction(studyPermissions, "read")
+   * auth = {
    *  all: {
    *    read: false,
    *    write: false,
@@ -44,11 +72,13 @@ function allowedStudiesForAction(studyPermissions, action) {
    * ** Read all studies **
    * studyPermissions = {
    *  all: {
-   *    read: true
+   *    read: true,
+   *    write: false,
+   *    delete: false
    *  }
    * }
-   * result = allowedStudiesForAction(studyPermissions, "read")
-   * result = {
+   * auth = allowedStudiesForAction(studyPermissions, "read")
+   * auth = {
    *  all: {
    *    read: true
    *  },
@@ -57,7 +87,7 @@ function allowedStudiesForAction(studyPermissions, action) {
    *
    * */
 
-  result = {
+  auth = {
     all: {},
     studies: null,
   };
@@ -68,16 +98,46 @@ function allowedStudiesForAction(studyPermissions, action) {
     Object.keys(studyPermissions.studies).length > 0
   ) {
     studyPermissionList = extractStudyPermissions(studyPermissions);
-    result.studies = studyPermissionList
+    auth.studies = studyPermissionList
       .filter((studyPermission) => studyPermission[action])
       .map((studyPermission) => studyPermission.id);
   }
   // Check if user has read all, write all, or delete all permissions
   if (studyPermissions.all && studyPermissions.all[action]) {
-    result.all[action] = true;
+    auth.all[action] = true;
   }
 
-  return result;
+  return auth;
+}
+
+function isAuthorizedStudyResource(auth, theResource) {
+  /*
+   * Check if the user is authorized to access theResource or create
+   * theResource (in the case that it does not exist yet)
+   *
+   * To create or access the FHIR resource, all of the study_ids in
+   * the resource's tag list must be included in the user's authorized
+   * study list
+   *
+   * The only exception to this is if a new FHIR resource is being created
+   * and it has no tags. Users are allowed to create and view any FHIR resources
+   * that have 0 study tags
+   * */
+
+  // *NOTE: Unfortunately Smile CDR requires that the elements in the tags
+  // array is only accessed by index so .filter and .every functions
+  // do not work here
+  count = 0;
+  for (var i in theResource.meta?.tag) {
+    let tag = theResource.meta?.tag[i];
+    if (tag.system !== "urn:study_id") {
+      continue;
+    }
+    if (auth.studies.includes(tag.code)) {
+      count++;
+    }
+  }
+  return count === theResource.meta.tag.length;
 }
 
 /**
@@ -156,31 +216,13 @@ function consentCanSeeResource(
   theClientSession
 ) {
   Log.info("******** consentCanSeeResource ******** ");
-  // Get request's HTTP operation
-  switch (String(theRequestDetails.requestType)) {
-    case "GET":
-      action = "read";
-      break;
-    case "POST":
-      action = "write";
-      break;
-    case "PUT":
-      action = "write";
-      break;
-    case "PUT":
-      action = "write";
-      break;
-    case "DELETE":
-      action = "delete";
-      break;
-    default:
-      Log.info(
-        `REJECT - Unrecognized HTTP operation ${String(
-          theRequestDetails.requestType
-        )}`
-      );
-      theContextServices.reject();
-      return;
+
+  // Translate HTTP operation to permission
+  action = permissionFromHttpOp(String(theRequestDetails.requestType));
+  if (!action) {
+    Log.info(`REJECT - Unrecognized HTTP operation ${String(httpOp)}`);
+    theContextServices.reject();
+    return;
   }
 
   // Extract study permissions from user session
@@ -193,50 +235,44 @@ function consentCanSeeResource(
     theContextServices.reject();
     return;
   }
-  result = allowedStudiesForAction(studyPermissions, action);
+  auth = allowedStudiesForAction(studyPermissions, action);
 
-  Log.error(JSON.stringify(result));
+  Log.info(`Calculated auth object: ${JSON.stringify(auth)}`);
 
-  // For read-only users that have been granted access to specific studies,
-  // Grant access if the user has access to ALL of the studies tagged on the resource
-  isStudyResource = true;
-  if (!!result.studies?.length) {
-    // *NOTE: Unfortunately Smile CDR requires that the elements in the tags
-    // array is only accessed by index so filter and every do not work here
-    for (var i in theResource.meta.tag) {
-      let tag = theResource.meta.tag[i];
-      if (tag.system !== "urn:study_id") {
-        continue;
-      }
-      isStudyResource = isStudyResource && result.studies.includes(tag.code);
-    }
-    if (isStudyResource) {
-      theContextServices.authorized();
-      Log.info(
-        `Authorized to ${action} specific studies\n${JSON.stringify(result)}`
-      );
-      return;
-    }
+  // No access due to no permissions
+  if (!(auth.studies?.length > 0 || auth.all[action])) {
+    Log.info("Not authorized to access any studies yet");
+    theContextServices.reject();
+    return;
   }
-  // For super users that can do read/write/delete all,
-  // skip the rest of the consent service
-  if (result.all[action]) {
+
+  // Study specific access
+  if (isAuthorizedStudyResource(auth, theResource)) {
+    theContextServices.authorized();
+    Log.info(
+      `Authorized to ${action} specific studies\n${JSON.stringify(auth)}`
+    );
+    return;
+  }
+  // Super user blanket access - read/write/delete all,
+  if (auth.all[action]) {
     theContextServices.authorized();
     Log.info(`Authorized to ${action} ALL studies`);
     return;
   }
-  Log.info("Not authorized to access any studies yet");
+
+  Log.info("Insufficient authorization to access FHIR resources");
   theContextServices.reject();
   return;
 }
 
 // ******************************** TEST ********************************
 request = {
-  requestType: "GET",
+  requestType: "POST",
 };
 resource = {
   meta: {
-    tags: [
+    tag: [
       {
         system: "urn:study_id",
         code: "SD-0",
@@ -256,14 +292,14 @@ context = {
   },
 };
 user = {
-  role: "FHIR_ALL_WRITE",
+  roles: ["FHIR_ALL_READ", "FHIR_ALL_WRITE"],
   notes:
-    // '{"studies": {"SD-0": {"read": false, "write": false, "delete": false}, "SD-1": {"read": true, "write": false, "delete": false}}}',
-    '{"studies": {"SD-0": {"read": false, "write": true, "delete": false}}, "all": {"read": true, "write": false, "delete": false}}',
+    '{"studies": {"SD-0": {"read": true, "write": true, "delete": false}, "SD-1": {"read": false, "write": false, "delete": false}}, "all": { "read": true }}',
+  // '{"studies": {"SD-0": {"read": false, "write": true, "delete": false}}, "all": {"read": true, "write": false, "delete": false}}',
   // '{"all": { "foo": true }}',
   // "",
   hasAuthority: function (role) {
-    return this.role == role;
+    return this.roles.includes(role);
   },
 };
 

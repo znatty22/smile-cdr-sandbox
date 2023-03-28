@@ -30,6 +30,7 @@
       },
       "studies": {
         "SD-0": {
+          "read": true,
           "write": true,
           "delete": false
         }
@@ -75,3 +76,4 @@
     "moduleId": "local_security"
   }
 ]
+
