@@ -172,7 +172,7 @@ function consentStartOperation(
   // For superusers, we will skip the rest of the consent service entirely
   if (theUserSession != null && theUserSession.hasAuthority("ROLE_SUPERUSER")) {
     theContextServices.authorized();
-    return true;
+    return;
   }
 
   // If user has appropriate role, proceed to next step in consent pipeline
@@ -182,14 +182,12 @@ function consentStartOperation(
     roles.some((role) => theUserSession.hasAuthority(role))
   ) {
     theContextServices.proceed();
-    return true;
+    return;
   }
   Log.info(
     "User has not been assigned any of the acceptable roles necessary for consent authorization"
   );
   theContextServices.reject();
-
-  return false;
 }
 
 /**
@@ -248,16 +246,16 @@ function consentCanSeeResource(
 
   // Study specific access
   if (isAuthorizedStudyResource(auth, theResource)) {
-    theContextServices.authorized();
     Log.info(
       `Authorized to ${action} specific studies\n${JSON.stringify(auth)}`
     );
+    theContextServices.authorized();
     return;
   }
   // Super user blanket access - read/write/delete all,
   if (auth.all[action]) {
-    theContextServices.authorized();
     Log.info(`Authorized to ${action} ALL studies`);
+    theContextServices.authorized();
     return;
   }
 
@@ -303,7 +301,5 @@ user = {
   },
 };
 
-proceed = consentStartOperation(request, user, context);
-if (proceed) {
-  consentCanSeeResource(request, user, context, resource);
-}
+consentStartOperation(request, user, context);
+consentCanSeeResource(request, user, context, resource);

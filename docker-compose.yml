@@ -17,7 +17,10 @@ services:
     volumes:
       - ./settings/master.properties:/home/smile/smilecdr/classes/cdr-config-Master.properties
       - ./settings/setenv:/home/smile/smilecdr/bin/setenv
-      - ./settings/consent.js:/home/smile/smilecdr/classes/consent.js
+      - ./settings/debug/consent.js:/home/smile/smilecdr/classes/consent.js
+      - ./settings/system-users.json:/home/smile/smilecdr/classes/config_seeding/users.json
+      - ./settings/oidc-servers.json:/home/smile/smilecdr/classes/config_seeding/oidc-servers.json
+      - ./settings/auth.js:/home/smile/smilecdr/classes/config_seeding/auth.js
       # - log:/home/smile/smilecdr/log
       # - mq:/home/smile/smilecdr/activemq-data
     restart: "unless-stopped"

@@ -1,0 +1,14 @@
+{
+  "username": "ingest_client",
+  "password": "iamSmile123",
+  "familyName": "Ingest",
+  "givenName": "Client",
+  "authorities": [
+    {
+      "permission": "FHIR_ALL_READ"
+    },
+    {
+      "permission": "FHIR_ALL_WRITE"
+    }
+  ]
+}
