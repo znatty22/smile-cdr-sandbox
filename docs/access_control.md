@@ -17,17 +17,74 @@ certain actions (HTTP GET, POST, etc.) on certain data
 - The actions they can take along with what data they can access should be 
 encoded in a set of claims/scopes. 
 
-- If using OAuth2, these claims would likely be part of the Bearer token 
+- If using **OAuth2**, these claims would likely be part of the Bearer token 
 granted by the Authority Server
 
-- If not using OAuth2, these claims would be stored in the user object that 
+- If **not using OAuth2**, these claims would be stored in the user object that 
 the server manages.
+
+### Example user with claims
+
+```yaml
+# A read-only, read-specific study user
+read-only-user:
+  all:
+    read: false
+    write: false
+    delete: false
+  studies:
+    SD-0:
+      read: true
+      write: false
+      delete: false
+    SD-1:
+      read: false
+      write: false
+      delete: false
+```
+
+```yaml
+# A read-only, read-all study user
+read-super-user:
+  all:
+    read: true
+    write: false
+    delete: false
+  studies:
+```
+
+## Study Resources - Tags
+- A resource belongs to a study if it contains the study ID in its
+`Resource.meta.tag` field.
+
+### Example
+```json
+{
+  "resourceType": "Patient",
+  "id": "PT-0-0",
+  "identifier": [
+    {
+      "use": "official",
+      "system": "https://app.dewrangle.com/fhir",
+      "value": "PT-0-0"
+    }
+  ],
+  "meta": {
+    "tag": [
+      {
+        "code": "SD-0",
+        "system": "urn:study_id",
+        "display": "SD-0"
+      }
+    ]
+  },
+  "gender": "male"
+}
+```
 
 ## Policies
 
 ### Read All Policy
-- A resource belongs to a study if it contains the study ID in its
-`Resource.meta.tags` field.
 
 - Users or clients must be allowed to perform HTTP GET requests
 
